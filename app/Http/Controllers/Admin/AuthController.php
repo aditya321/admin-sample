@@ -43,7 +43,13 @@ class AuthController extends BaseController {
     public function getLogin() {
         $user = Auth::user();
         if (is_object($user)) {
+            if(!$user->logout){         // checking if logout is entered into the db
             return view('admin/dashboard');
+            }
+            else{
+                Auth::logout();
+              return view('admin.login'); 
+            }
         }
         return view('admin.login');
     }
@@ -52,13 +58,16 @@ class AuthController extends BaseController {
         try {
             $remember = $request->has('remember_me') ? true : false;
             if (Auth::attempt(['email' => $request->email, 'password' => $request->password], $remember)) {
+                $user = Auth::user();
+                $date = new \DateTime();
+                $user->login_time = $date;
+                $user->logout = 0;       //reseting the value if users login again
+                $user->save();
                 return view('admin.dashboard');
             }
 
             return \Redirect::back()->withErrors(['Invalid Credentials']);
         } catch (\Exception $e) {
-            echo $e->getMessage();
-            exit;
             Log::error($e->getMessage());
         }
     }
@@ -86,5 +95,26 @@ class AuthController extends BaseController {
         Auth::logout();
         return redirect('/');
     }
-
+    
+    /**
+     * 
+     * @param function : automaticlogout()
+     * @returns Description : to log out automatically i have entered a entry in db.
+     * 
+     */
+    public function automaticLogOut($request) {
+        try {
+            $date = new \DateTime();
+            $date->modify('- 48 hours');
+            $formatted_date = $date->format('Y-m-d H:i:s');
+            $users = User::where('login_time', '<=',$formatted_date)->get();
+            foreach ($users as $user) {
+                $user->logout = 1;
+                $user->save();
+            }
+        } catch (\Exception $ex) {
+            return $this->response->responseServerError($ex->getMessage());
+        }
+    }
+    
 }

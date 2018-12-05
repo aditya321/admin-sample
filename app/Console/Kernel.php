@@ -26,6 +26,13 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')
         //          ->hourly();
+        
+                $schedule->call(function () {
+                    Log::info('Automatic log out');
+                    $implement = new \App\Http\Controllers\Admin\AuthController;
+                    $implement->automaticLogout();
+                })
+                ->hourly(); 
     }
 
     /**
